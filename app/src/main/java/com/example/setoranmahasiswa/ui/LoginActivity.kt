@@ -14,6 +14,7 @@ import net.openid.appauth.AuthorizationService
 import net.openid.appauth.AuthorizationServiceConfiguration
 import net.openid.appauth.ResponseTypeValues
 import com.example.setoranmahasiswa.data.SessionManager
+import org.json.JSONObject
 
 class LoginActivity : AppCompatActivity() {
 
@@ -34,8 +35,8 @@ class LoginActivity : AppCompatActivity() {
 
     private fun startSSOLogin() {
         val serviceConfig = AuthorizationServiceConfiguration(
-            Uri.parse("https://id.tif.uin-suska.ac.id/auth/realms/tif/protocol/openid-connect/auth"),
-            Uri.parse("https://id.tif.uin-suska.ac.id/auth/realms/tif/protocol/openid-connect/token")
+            Uri.parse("http://10.0.2.2:8080/auth/realms/tif/protocol/openid-connect/auth"),
+            Uri.parse("http://10.0.2.2:8080/auth/realms/tif/protocol/openid-connect/token")
         )
 
         val authRequest = AuthorizationRequest.Builder(
@@ -66,8 +67,9 @@ class LoginActivity : AppCompatActivity() {
 
                         SessionManager.token = accessToken ?: ""
 
-                        // Optional: Extract NIM from ID Token
-                        // SessionManager.nim = extractNimFromIdToken(idToken)
+                        // ✅ Ekstrak NIM dari ID Token (jika tersedia)
+                        SessionManager.nim = extractNimFromIdToken(idToken)
+                        Log.d("Login", "NIM dari token: ${SessionManager.nim}")
 
                         startActivity(Intent(this, MainActivity::class.java))
                         finish()
@@ -78,6 +80,19 @@ class LoginActivity : AppCompatActivity() {
             } else {
                 Log.e("Login", "Authorization failed: $ex")
             }
+        }
+    }
+
+    // ✅ Fungsi untuk ekstrak NIM dari ID Token JWT
+    private fun extractNimFromIdToken(idToken: String?): String {
+        return try {
+            val parts = idToken?.split(".") ?: return ""
+            val payload = android.util.Base64.decode(parts[1], android.util.Base64.URL_SAFE)
+            val json = JSONObject(String(payload))
+            json.optString("nim") // Pastikan ada "nim" di claim token
+        } catch (e: Exception) {
+            Log.e("Login", "Gagal ekstrak NIM: ${e.message}")
+            ""
         }
     }
 }
